@@ -7,11 +7,15 @@ Licensed Creative Commons 4.0 Attribution Non-Commercial Sharable with Attributi
 hookWidth = 25;
 hookInternalDepth = 25;
 hookLipHeight = 4;
+hookStyle = "standard"; // ["standard", "round"]
+hookQuantity = 1;
 
 /*[Additional Customization]*/
 hookLipThickness = 3;
 hookBottomThickness = 5;
 backHeight = 35;
+hookSpacing = 20;
+
 
 /*[Slot Customization]*/
 //Distance between Multiconnect slots on the back (25mm is standard for MultiBoard)
@@ -31,22 +35,70 @@ onRampEveryXSlots = 1;
 
 
 /*[Hidden]*/
-backWidth = max(distanceBetweenSlots,hookWidth);
+hookOverallWidth = hookWidth * hookQuantity + hookSpacing * (hookQuantity - 1);
+backWidth = max(distanceBetweenSlots,hookOverallWidth);
 
 //Hook
 union(){
     //back
     translate(v = [-backWidth/2,0,0]) 
         multiconnectBack(backWidth = backWidth, backHeight = backHeight, distanceBetweenSlots = distanceBetweenSlots);
-    //hook base
-    translate(v = [-hookWidth/2,0,0]) 
-        cube(size = [hookWidth,hookInternalDepth+hookLipThickness,hookBottomThickness]);
-    //hook lip
-    translate(v = [-hookWidth/2,hookInternalDepth,0]) 
-        cube(size = [hookWidth,hookLipThickness,hookLipHeight+hookBottomThickness]);
+ 
+    for (i=[0:hookQuantity-1]){
+        if (hookStyle == "standard") {
+            translate([-backWidth/2 + i*hookSpacing + i*hookWidth + hookWidth/2,0,0]) 
+                hookStandard(hookWidth, hookInternalDepth, hookLipThickness, hookBottomThickness);
+        } else if (hookStyle == "round") {
+
+            // This slices the bottom off the rounded hook so it can print cleanly
+            difference(){
+                translate([-backWidth/2 + i*hookSpacing + i*hookWidth + hookWidth/2,0,-1]) {
+                    roundedHook(hookInternalDepth, hookWidth, hookLipHeight);
+                }
+                translate([-backWidth/2,0,-10]) cube(size=[backWidth, hookInternalDepth + hookWidth,10]);
+            }
+        }
+    }
 }
 
 //BEGIN MODULES
+//Standard Hook
+module hookStandard(hookWidth, hookInternalDepth, hookLipThickness, hookBottomThickness) 
+{
+    union() {
+        //hook base
+        translate(v = [-hookWidth/2,0,0]) 
+            cube(size = [hookWidth,hookInternalDepth+hookLipThickness,hookBottomThickness]);
+        //hook lip
+        translate(v = [-hookWidth/2,hookInternalDepth,0]) 
+            cube(size = [hookWidth,hookLipThickness,hookLipHeight+hookBottomThickness]);
+    }
+}
+
+// Single rounded hook
+module roundedHook(hookInternalDepth, hookWidth, hookLipHeight) {
+    // length
+        translate(v = [0, hookInternalDepth, hookWidth/2])
+    rotate([90,0,0]) 
+    linear_extrude(hookInternalDepth) circle(hookWidth/2);
+
+    // curve
+    translate([0,hookInternalDepth,hookWidth])
+    rotate([0,90,0])
+    rotate_extrude(angle=90)
+    translate([hookWidth/2,0,0])
+    circle(hookWidth/2);
+       
+    //curve 
+            translate([0,hookInternalDepth + hookWidth/2,hookWidth])
+    cylinder(h = hookLipHeight - hookWidth/2, r = hookWidth/2);
+
+    // hook end
+    translate([0,hookInternalDepth + hookWidth/2, hookWidth/2 + hookLipHeight])
+    sphere(r = hookWidth/2);
+
+}
+
 //Slotted back Module
 module multiconnectBack(backWidth, backHeight, distanceBetweenSlots)
 {
