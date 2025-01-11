@@ -2,6 +2,7 @@
 Credit to @David D on Printables and Jonathan at Keep Making for Multiconnect and Multiboard, respectively
 Licensed Creative Commons 4.0 Attribution Non-Commercial Sharable with Attribution
 */
+include <BOSL2/std.scad>
 
 /* [Standard Parameters] */
 hookWidth = 25;
@@ -35,7 +36,7 @@ onRampEveryXSlots = 1;
 
 
 /*[Hidden]*/
-hookOverallWidth = hookWidth * hookQuantity + hookSpacing * (hookQuantity - 1);
+hookOverallWidth = hookWidth + hookSpacing*(hookQuantity-1);
 backWidth = max(distanceBetweenSlots,hookOverallWidth);
 
 //Hook
@@ -44,21 +45,9 @@ union(){
     translate(v = [-backWidth/2,0,0]) 
         multiconnectBack(backWidth = backWidth, backHeight = backHeight, distanceBetweenSlots = distanceBetweenSlots);
  
-    for (i=[0:hookQuantity-1]){
-        if (hookStyle == "standard") {
-            translate([-backWidth/2 + i*hookSpacing + i*hookWidth + hookWidth/2,0,0]) 
-                hookStandard(hookWidth, hookInternalDepth, hookLipThickness, hookBottomThickness);
-        } else if (hookStyle == "round") {
-
-            // This slices the bottom off the rounded hook so it can print cleanly
-            difference(){
-                translate([-backWidth/2 + i*hookSpacing + i*hookWidth + hookWidth/2,0,-1]) {
-                    roundedHook(hookInternalDepth, hookWidth, hookLipHeight);
-                }
-                translate([-backWidth/2,0,-10]) cube(size=[backWidth, hookInternalDepth + hookWidth,10]);
-            }
-        }
-    }
+ xcopies(n = hookQuantity, spacing = hookSpacing)
+        if (hookStyle == "round") roundedHook(hookInternalDepth, hookWidth, hookLipHeight);
+        else hookStandard(hookWidth, hookInternalDepth, hookLipThickness, hookBottomThickness);
 }
 
 //BEGIN MODULES
@@ -77,26 +66,32 @@ module hookStandard(hookWidth, hookInternalDepth, hookLipThickness, hookBottomTh
 
 // Single rounded hook
 module roundedHook(hookInternalDepth, hookWidth, hookLipHeight) {
-    // length
-        translate(v = [0, hookInternalDepth, hookWidth/2])
-    rotate([90,0,0]) 
-    linear_extrude(hookInternalDepth) circle(hookWidth/2);
+    difference(){
+    translate([0,0, -( hookWidth/2 - (hookWidth/2*cos(30)))])
+    { 
+        // length
+            translate(v = [0, hookInternalDepth, hookWidth/2])
+        rotate([90,0,0]) 
+        linear_extrude(hookInternalDepth) circle(hookWidth/2);
 
-    // curve
-    translate([0,hookInternalDepth,hookWidth])
-    rotate([0,90,0])
-    rotate_extrude(angle=90)
-    translate([hookWidth/2,0,0])
-    circle(hookWidth/2);
-       
-    //curve 
-            translate([0,hookInternalDepth + hookWidth/2,hookWidth])
-    cylinder(h = hookLipHeight - hookWidth/2, r = hookWidth/2);
+        // curve
+        translate([0,hookInternalDepth,hookWidth])
+        rotate([0,90,0])
+        rotate_extrude(angle=90)
+        translate([hookWidth/2,0,0])
+        circle(hookWidth/2);
+           
+        //curve 
+                translate([0,hookInternalDepth + hookWidth/2,hookWidth])
+        cylinder(h = hookLipHeight - hookWidth/2, r = hookWidth/2);
 
-    // hook end
-    translate([0,hookInternalDepth + hookWidth/2, hookWidth/2 + hookLipHeight])
-    sphere(r = hookWidth/2);
-
+        // hook end
+        translate([0,hookInternalDepth + hookWidth/2, hookWidth/2 + hookLipHeight])
+        sphere(r = hookWidth/2);
+    }
+    translate([-hookWidth/2,-hookWidth/2,-( hookWidth/2 - (hookWidth/2*cos(30)))]) 
+        cube([hookWidth,hookInternalDepth + hookWidth,( hookWidth/2 - (hookWidth/2*cos(30)))]);
+    }
 }
 
 //Slotted back Module
